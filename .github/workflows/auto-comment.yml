@@ -1,4 +1,4 @@
-name: Auto Respond to Issues
+name: Auto Race Condition Exploit Respond
 
 on:
   issues:
@@ -9,29 +9,37 @@ permissions:
   contents: read
 
 jobs:
-  auto-response:
+  race-response:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Respond to new issue
+      - name: Exploit Race Condition via Mass Respond
         uses: actions/github-script@v7
         with:
           script: |
             const issueNumber = context.issue.number;
             const issueAuthor = context.payload.issue.user.login;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
 
-            const commentBody = `Terima kasih atas kontribusi Anda, @${issueAuthor}. Permintaan koreksi domain Anda akan segera diterapkan. 🙏`;
+            const commentTemplate = `Terima kasih atas kontribusi Anda, @${issueAuthor}. Permintaan Anda sedang diproses.`;
 
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issueNumber,
-              body: commentBody
+            const comments = Array.from({ length: 10 }, (_, i) => {
+              return github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                body: `${commentTemplate} [respond ke-${i + 1}]`
+              });
             });
 
-            await github.rest.issues.addLabels({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issueNumber,
-              labels: ['bug', 'auto-response']
+            const labels = Array.from({ length: 5 }, (_, i) => {
+              return github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                labels: [`race-${i + 1}`]
+              });
             });
+
+            // Kirim semua komentar dan label secara paralel dalam waktu bersamaan
+            await Promise.all([...comments, ...labels]);
